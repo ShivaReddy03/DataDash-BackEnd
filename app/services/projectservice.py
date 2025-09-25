@@ -234,44 +234,102 @@ class ProjectService:
                 
                 return ProjectService._row_to_project_data(row)
     
-    # READ OPERATIONS - Only show projects where is_active = true
+    # # READ OPERATIONS - Only show projects where is_active = true
+    # @staticmethod
+    # async def list_projects(
+    #     limit: int = 20,
+    #     offset: int = 0,
+    #     property_type: Optional[str] = None,
+    #     status_filter: Optional[str] = None,
+    #     min_price: Optional[float] = None,
+    #     max_price: Optional[float] = None
+    # ) -> tuple[List[ProjectData], int]:
+    #     """Return projects and total count for pagination"""
+    #     async with get_cursor() as conn:
+    #         async with conn.cursor() as cur:
+    #             # Build WHERE clause
+    #             where_conditions = ["is_active = true"]
+    #             params = []
+                
+    #             if property_type:
+    #                 where_conditions.append("property_type = %s")
+    #                 params.append(property_type)
+    #             if status_filter:
+    #                 where_conditions.append("status = %s")
+    #                 params.append(status_filter)
+    #             if min_price is not None:
+    #                 where_conditions.append("base_price >= %s")
+    #                 params.append(min_price)
+    #             if max_price is not None:
+    #                 where_conditions.append("base_price <= %s")
+    #                 params.append(max_price)
+                
+    #             where_clause = " AND ".join(where_conditions)
+                
+    #             # Total count
+    #             count_query = f"SELECT COUNT(*) FROM projects WHERE {where_clause}"
+    #             await cur.execute(count_query, params)
+    #             total_projects = (await cur.fetchone())[0]
+                
+    #             # Add pagination
+    #             params.extend([limit, offset])
+    #             query = f"""
+    #                 SELECT id, title, location, description, long_description, website_url,
+    #                        status, base_price, property_type, has_rental_income,
+    #                        pricing_details, total_units, available_units, sold_units,
+    #                        reserved_units, rera_number, building_permission,
+    #                        quick_info, gallery_images, key_highlights, features,
+    #                        investment_highlights, amenities, created_at, updated_at, is_active
+    #                 FROM projects
+    #                 WHERE {where_clause}
+    #                 ORDER BY created_at DESC
+    #                 LIMIT %s OFFSET %s
+    #             """
+    #             await cur.execute(query, params)
+    #             rows = await cur.fetchall()
+                
+    #             projects = [ProjectService._row_to_project_data(row) for row in rows]
+    #             return projects, total_projects
+
     @staticmethod
     async def list_projects(
+        page: int = 1,
         limit: int = 20,
-        offset: int = 0,
         property_type: Optional[str] = None,
         status_filter: Optional[str] = None,
         min_price: Optional[float] = None,
         max_price: Optional[float] = None
-    ) -> List[ProjectData]:
-        """List only active projects with pagination and filtering"""
-        
+    ) -> tuple[List[ProjectData], int]:
+        """Return projects and total count for pagination"""
+        offset = (page - 1) * limit  # calculate offset from page
+
         async with get_cursor() as conn:
             async with conn.cursor() as cur:
-                # Build dynamic WHERE clause - Always filter by is_active = true
                 where_conditions = ["is_active = true"]
                 params = []
-                
+
                 if property_type:
                     where_conditions.append("property_type = %s")
                     params.append(property_type)
-                
                 if status_filter:
                     where_conditions.append("status = %s")
                     params.append(status_filter)
-                
                 if min_price is not None:
                     where_conditions.append("base_price >= %s")
                     params.append(min_price)
-                
                 if max_price is not None:
                     where_conditions.append("base_price <= %s")
                     params.append(max_price)
-                
-                # Add limit and offset
-                params.extend([limit, offset])
-                
+
                 where_clause = " AND ".join(where_conditions)
+
+                # Total count
+                count_query = f"SELECT COUNT(*) FROM projects WHERE {where_clause}"
+                await cur.execute(count_query, params)
+                total_projects = (await cur.fetchone())[0]
+
+                # Pagination
+                params.extend([limit, offset])
                 query = f"""
                     SELECT id, title, location, description, long_description, website_url,
                            status, base_price, property_type, has_rental_income,
@@ -284,12 +342,13 @@ class ProjectService:
                     ORDER BY created_at DESC
                     LIMIT %s OFFSET %s
                 """
-                
                 await cur.execute(query, params)
                 rows = await cur.fetchall()
-                
-                return [ProjectService._row_to_project_data(row) for row in rows]
-    
+
+                projects = [ProjectService._row_to_project_data(row) for row in rows]
+                return projects, total_projects
+
+
     @staticmethod
     async def get_project_by_id(project_id: str) -> Optional[ProjectData]:
         """Get single project by ID - Only if active"""

@@ -4,6 +4,7 @@ from typing import Optional
 from ..services.projectservice import ProjectService
 from ..models.projectmodels import (
     CreateProjectRequest,
+    ListProjectResponse,
     UpdateProjectRequest,
     ProjectResponse,
     ProjectListResponse
@@ -94,15 +95,62 @@ async def update_project(
             detail=f"Failed to update project: {str(e)}"
         )
 
-# PUBLIC READ OPERATIONS
-@router.get("/", response_model=ProjectListResponse)
+# @router.get("/", response_model=ListProjectResponse)
+# async def list_projects(
+#     limit: Optional[int] = Query(20, ge=1, le=100),
+#     offset: Optional[int] = Query(0, ge=0),
+#     property_type: Optional[str] = Query(None),
+#     status_filter: Optional[str] = Query(None),
+#     min_price: Optional[float] = Query(None, ge=0),
+#     max_price: Optional[float] = Query(None, ge=0)
+# ):
+#     try:
+#         if min_price is not None and max_price is not None and min_price > max_price:
+#             raise HTTPException(
+#                 status_code=status.HTTP_400_BAD_REQUEST,
+#                 detail="Minimum price cannot be greater than maximum price"
+#             )
+        
+#         projects, total_projects = await ProjectService.list_projects(
+#             limit=limit,
+#             offset=offset,
+#             property_type=property_type,
+#             status_filter=status_filter,
+#             min_price=min_price,
+#             max_price=max_price
+#         )
+        
+#         page = (offset // limit) + 1
+#         total_pages = (total_projects + limit - 1) // limit
+        
+#         return ListProjectResponse(
+#             message="Projects retrieved successfully",
+#             page=page,
+#             limit=limit,
+#             total_pages=total_pages,
+#             is_previous=page > 1,
+#             is_next=page < total_pages,
+#             total_projects=total_projects,
+#             projects=projects
+#         )
+        
+#     except HTTPException:
+#         raise
+#     except Exception as e:
+#         raise HTTPException(
+#             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+#             detail=f"Failed to retrieve projects: {str(e)}"
+#         )
+
+
+@router.get("/", response_model=ListProjectResponse)
 async def list_projects(
-    limit: Optional[int] = Query(20, ge=1, le=100, description="Number of projects to return"),
-    offset: Optional[int] = Query(0, ge=0, description="Number of projects to skip"),
+    page: Optional[int] = Query(1, ge=1, description="Page number"),
+    limit: Optional[int] = Query(20, ge=1, le=100, description="Projects per page"),
     property_type: Optional[str] = Query(None, description="Filter by property type"),
     status_filter: Optional[str] = Query(None, description="Filter by status"),
-    min_price: Optional[float] = Query(None, ge=0, description="Minimum price filter"),
-    max_price: Optional[float] = Query(None, ge=0, description="Maximum price filter")
+    min_price: Optional[float] = Query(None, ge=0, description="Minimum price"),
+    max_price: Optional[float] = Query(None, ge=0, description="Maximum price")
 ):
     """List all active projects with pagination and filtering"""
     try:
@@ -111,20 +159,29 @@ async def list_projects(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Minimum price cannot be greater than maximum price"
             )
-        
-        projects = await ProjectService.list_projects(
+
+        projects, total_projects = await ProjectService.list_projects(
+            page=page,
             limit=limit,
-            offset=offset,
             property_type=property_type,
             status_filter=status_filter,
             min_price=min_price,
             max_price=max_price
         )
-        return ProjectListResponse(
-            success=True,
+
+        total_pages = (total_projects + limit - 1) // limit
+
+        return ListProjectResponse(
             message="Projects retrieved successfully",
-            data=projects
+            page=page,
+            limit=limit,
+            total_pages=total_pages,
+            is_previous=page > 1,
+            is_next=page < total_pages,
+            total_projects=total_projects,
+            projects=projects
         )
+
     except HTTPException:
         raise
     except Exception as e:
@@ -132,6 +189,7 @@ async def list_projects(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to retrieve projects: {str(e)}"
         )
+
 
 @router.get("/{project_id}", response_model=ProjectResponse)
 async def get_project(project_id: str):

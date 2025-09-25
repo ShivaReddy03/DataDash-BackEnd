@@ -226,3 +226,13 @@ class ProjectSummaryListResponse(BaseModel):
     success: bool
     message: str
     data: List[ProjectSummary]
+
+class ListProjectResponse(BaseModel):
+    message: str
+    page: int
+    limit: int
+    total_pages: int
+    is_previous: bool
+    is_next: bool
+    total_projects: int
+    projects: List[ProjectData]
