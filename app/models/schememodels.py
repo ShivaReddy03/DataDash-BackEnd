@@ -206,6 +206,11 @@ class InvestmentSchemeResponse(BaseModel):
     data: InvestmentSchemeData
 
 class InvestmentSchemeListResponse(BaseModel):
-    success: bool
     message: str
-    data: List[InvestmentSchemeData]
+    page: int
+    limit: int
+    total_pages: int
+    is_previous: bool
+    is_next: bool
+    total_schemes: int
+    schemes: List[InvestmentSchemeData]

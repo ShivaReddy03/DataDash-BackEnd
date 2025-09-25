@@ -152,23 +152,32 @@ async def get_schemes_by_project(
     project_id: str,
     scheme_type: Optional[str] = Query(None, description="Filter by scheme type: single_payment, installment"),
     is_active: Optional[bool] = Query(True, description="Filter by active status"),
-    limit: Optional[int] = Query(20, ge=1, le=100, description="Number of schemes to return"),
-    offset: Optional[int] = Query(0, ge=0, description="Number of schemes to skip")
+    page: Optional[int] = Query(1, ge=1, description="Page number"),
+    limit: Optional[int] = Query(20, ge=1, le=100, description="Number of schemes per page")
 ):
-    """Get investment schemes for a specific project"""
+    """Get investment schemes for a specific project with pagination"""
     try:
-        schemes = await InvestmentSchemeService.get_schemes_by_project(
+        schemes, total_schemes = await InvestmentSchemeService.get_schemes_by_project(
             project_id=project_id,
             scheme_type=scheme_type,
             is_active=is_active,
-            limit=limit,
-            offset=offset
+            page=page,
+            limit=limit
         )
+        
+        total_pages = (total_schemes + limit - 1) // limit
+
         return InvestmentSchemeListResponse(
-            success=True,
             message=f"Investment schemes for project retrieved successfully",
-            data=schemes
+            page=page,
+            limit=limit,
+            total_pages=total_pages,
+            is_previous=page > 1,
+            is_next=page < total_pages,
+            total_schemes=total_schemes,
+            schemes=schemes
         )
+
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

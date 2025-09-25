@@ -245,29 +245,33 @@ class InvestmentSchemeService:
         project_id: str,
         scheme_type: Optional[str] = None,
         is_active: Optional[bool] = True,
-        limit: int = 20,
-        offset: int = 0
-    ) -> List[InvestmentSchemeData]:
-        """Get investment schemes for a specific project"""
+        page: int = 1,
+        limit: int = 20
+    ) -> tuple[List[InvestmentSchemeData], int]:
+        """Get investment schemes for a specific project with pagination"""
+        offset = (page - 1) * limit  # calculate offset from page
         
         async with get_cursor() as conn:
             async with conn.cursor() as cur:
-                # Build dynamic WHERE clause
                 where_conditions = ["project_id = %s"]
                 params = [project_id]
                 
                 if scheme_type:
                     where_conditions.append("scheme_type = %s")
                     params.append(scheme_type)
-                
                 if is_active is not None:
                     where_conditions.append("is_active = %s")
                     params.append(is_active)
                 
+                where_clause = " AND ".join(where_conditions)
+                
+                # Get total count
+                count_query = f"SELECT COUNT(*) FROM investment_schemes WHERE {where_clause}"
+                await cur.execute(count_query, params)
+                total_schemes = (await cur.fetchone())[0]
+                
                 # Add limit and offset
                 params.extend([limit, offset])
-                
-                where_clause = " AND ".join(where_conditions)
                 query = f"""
                     SELECT id, project_id, scheme_type, scheme_name, area_sqft,
                            booking_advance, balance_payment_days, total_installments,
@@ -278,11 +282,11 @@ class InvestmentSchemeService:
                     ORDER BY scheme_type, area_sqft
                     LIMIT %s OFFSET %s
                 """
-                
                 await cur.execute(query, params)
                 rows = await cur.fetchall()
                 
-                return [InvestmentSchemeService._row_to_scheme_data(row) for row in rows]
+                schemes = [InvestmentSchemeService._row_to_scheme_data(row) for row in rows]
+                return schemes, total_schemes
     
     # UTILITY METHOD
     @staticmethod
