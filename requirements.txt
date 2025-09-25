@@ -1,0 +1,32 @@
+# FastAPI and related packages
+fastapi
+uvicorn[standard]
+python-multipart
+
+# Database
+psycopg[binary]
+psycopg[pool]
+
+# Authentication and security
+bcrypt
+PyJWT
+python-jose[cryptography]   
+
+# Environment and configuration
+python-dotenv
+
+# Validation and serialization
+pydantic[email]
+
+# HTTP client (if needed)
+httpx
+
+# Development and testing (optional)
+pytest
+pytest-asyncio
+
+# CORS
+fastapi-cors
+
+# Logging
+structlog
