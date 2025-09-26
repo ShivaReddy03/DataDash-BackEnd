@@ -1,6 +1,6 @@
 from typing import Optional, List
 from ..configuration.database import get_cursor
-from ..models.projectmodels import ProjectData, CreateProjectRequest, UpdateProjectRequest
+from ..models.projectmodels import ProjectData, CreateProjectRequest, UpdateProjectRequest, ProjectOption
 import json
 
 class ProjectService:
@@ -483,3 +483,18 @@ class ProjectService:
             updated_at=row[24],
             is_active=row[25]
         )
+    
+    @staticmethod
+    async def get_project_options() -> List[ProjectOption]:
+        """Fetch only project id and title for dropdowns"""
+        async with get_cursor() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute("""
+                    SELECT id, title
+                    FROM projects
+                    WHERE is_active = true
+                    ORDER BY title ASC
+                """)
+                rows = await cur.fetchall()
+
+                return [ProjectOption(id=row[0], title=row[1]) for row in rows]

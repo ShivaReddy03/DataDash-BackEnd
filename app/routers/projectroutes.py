@@ -7,7 +7,8 @@ from ..models.projectmodels import (
     ListProjectResponse,
     UpdateProjectRequest,
     ProjectResponse,
-    ProjectListResponse
+    ProjectListResponse,
+    ProjectOptionsResponse,
 )
 import jwt
 import os
@@ -60,6 +61,22 @@ async def create_project(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to create project: {str(e)}"
+        )
+      
+@router.get("/options", response_model=ProjectOptionsResponse)
+async def list_project_options():
+    """Return minimal project info for dropdowns (id + title)"""
+    try:
+        options = await ProjectService.get_project_options()
+        return ProjectOptionsResponse(
+            success=True,
+            message="Project options retrieved successfully",
+            data=options
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve project options: {str(e)}"
         )
 
 @router.put("/{project_id}", response_model=ProjectResponse)

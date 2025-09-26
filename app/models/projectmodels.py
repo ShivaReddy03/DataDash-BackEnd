@@ -1,3 +1,4 @@
+import uuid
 from pydantic import BaseModel, HttpUrl, field_validator, model_validator
 from typing import List, Optional, Dict, Any
 from datetime import datetime
@@ -236,3 +237,12 @@ class ListProjectResponse(BaseModel):
     is_next: bool
     total_projects: int
     projects: List[ProjectData]
+
+class ProjectOption(BaseModel):
+    id: uuid.UUID
+    title: str
+
+class ProjectOptionsResponse(BaseModel):
+    success: bool
+    message: str
+    data: List[ProjectOption]
