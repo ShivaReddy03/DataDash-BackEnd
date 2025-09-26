@@ -277,3 +277,25 @@ class AdminService:
                     'created_at': row[4],
                     'updated_at': row[5]
                 }
+            
+
+#Get Dashboard Data
+    @staticmethod
+    async def get_dashboard_data() -> dict:
+        async with get_cursor() as conn:
+            async with conn.cursor() as cur:
+                # Placeholder queries - replace with actual logic
+                await cur.execute("SELECT COUNT(*) FROM admin_credentials")
+                total_users = (await cur.fetchone())[0]
+                
+                await cur.execute("SELECT COUNT(*) FROM projects")
+                total_projects = (await cur.fetchone())[0]
+                
+                await cur.execute("SELECT COUNT(*) FROM investment_schemes")
+                total_schemes = (await cur.fetchone())[0]
+                
+                return {
+                    'total_users': total_users,
+                    'total_projects': total_projects,
+                    'total_schemes': total_schemes
+                }

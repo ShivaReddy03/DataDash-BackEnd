@@ -59,3 +59,9 @@ class LoginResponse(BaseModel):
 class SuccessResponse(BaseModel):
     success: bool
     message: str
+
+
+class dashboardDataResponse(BaseModel):
+    tatal_users: int
+    total_projects: int
+    total_schemes: int

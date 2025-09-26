@@ -23,10 +23,10 @@ async def init_db():
         _pool = AsyncConnectionPool(database_url, min_size=1, max_size=10, open=False)
     else:
         # Use individual parameters (for local development)
-        host = os.getenv("DB_HOST", "localhost")
+        host = os.getenv("DB_HOST")
         port = int(os.getenv("DB_PORT", 5432))
         user = os.getenv("DB_USER", "postgres")
-        password = os.getenv("DB_PASSWORD", "2004")
+        password = os.getenv("DB_PASSWORD")
         database = os.getenv("DB_NAME", "ramya_constructions")
         
         connection_string = f"postgresql://{user}:{password}@{host}:{port}/{database}"
@@ -165,10 +165,10 @@ def get_database_url():
     if database_url:
         return database_url
     else:
-        host = os.getenv("DB_HOST", "localhost")
+        host = os.getenv("DB_HOST")
         port = os.getenv("DB_PORT", 5432)
         user = os.getenv("DB_USER", "postgres")
-        password = os.getenv("DB_PASSWORD", "2004")
+        password = os.getenv("DB_PASSWORD")
         database = os.getenv("DB_NAME", "ramya_constructions")
         
         return f"postgresql://{user}:{password}@{host}:{port}/{database}"

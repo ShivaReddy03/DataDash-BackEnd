@@ -9,7 +9,8 @@ from ..models.adminmodels import (
     AdminListResponse,
     LoginRequest, 
     LoginResponse,
-    SuccessResponse
+    SuccessResponse,
+    dashboardDataResponse
 )
 import jwt
 import os
@@ -149,7 +150,23 @@ async def get_my_profile(admin_id: str = Depends(AuthService.verify_token)):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to retrieve profile: {str(e)}"
         )
-
+    
+@router.get("/dashboard", response_model=dashboardDataResponse) 
+async def get_dashboard_data(admin_id: str = Depends(AuthService.verify_token)):    
+    """Get dashboard data (stub implementation)"""
+    try:
+        # Placeholder for actual dashboard data retrieval logic
+        dashboard_data=await AdminService.get_dashboard_data()
+        return dashboardDataResponse(
+            tatal_users=dashboard_data['total_users'],
+            total_projects=dashboard_data['total_projects'],
+            total_schemes=dashboard_data['total_schemes']
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve dashboard data: {str(e)}"
+        )
 @router.get("/{target_admin_id}", response_model=AdminResponse)
 async def get_admin_by_id(
     target_admin_id: str,
