@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends, status
+from fastapi import APIRouter, HTTPException, Depends, status, Query
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from typing import Optional
 from ..services.adminservice import AdminService
@@ -84,7 +84,7 @@ async def create_admin(
             # Verify the token
             AuthService.verify_token(credentials)
         
-        admin = await AdminService.create_admin(request.email, request.password)
+        admin = await AdminService.create_admin(request.name, request.email, request.password)
         return AdminResponse(
             success=True,
             message="Admin created successfully",
@@ -104,14 +104,21 @@ async def create_admin(
         )
 
 @router.get("/", response_model=AdminListResponse)
-async def get_all_admins(admin_id: str = Depends(AuthService.verify_token)):
-    """Get all admin users"""
+async def get_all_admins(
+    page: int = Query(1, ge=1, description="Page number"),
+    limit: int = Query(9, ge=1, le=50, description="Items per page"),
+    admin_id: str = Depends(AuthService.verify_token)
+):
+    """Get all admin users with pagination"""
     try:
-        admins = await AdminService.get_all_admins()
+        result = await AdminService.get_all_admins(page, limit)
         return AdminListResponse(
             success=True,
             message="Admins retrieved successfully",
-            data=admins
+            data=result['admins'],
+            total=result['total'],
+            page=result['page'],
+            pages=result['pages']
         )
     except Exception as e:
         raise HTTPException(
@@ -181,6 +188,7 @@ async def update_admin(
         admin = await AdminService.update_admin(
             target_admin_id, 
             request.email, 
+            request.name,
             request.password
         )
         if not admin:

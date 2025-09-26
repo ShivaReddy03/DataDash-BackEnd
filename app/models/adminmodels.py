@@ -4,11 +4,13 @@ from datetime import datetime
 
 class AdminData(BaseModel):
     id: str
+    name: str
     email: EmailStr
     created_at: datetime
     updated_at: datetime
 
 class CreateAdminRequest(BaseModel):
+    name: str
     email: EmailStr
     password: str
     
@@ -20,6 +22,7 @@ class CreateAdminRequest(BaseModel):
         return v
 
 class UpdateAdminRequest(BaseModel):
+    name: Optional[str] = None
     email: Optional[EmailStr] = None
     password: Optional[str] = None
     
@@ -44,6 +47,9 @@ class AdminListResponse(BaseModel):
     success: bool
     message: str
     data: List[AdminData]
+    total: int
+    page: int
+    pages: int
 
 class LoginResponse(BaseModel):
     success: bool

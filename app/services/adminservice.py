@@ -45,13 +45,13 @@ class AdminService:
         async with get_cursor() as conn:
             async with conn.cursor() as cur:
                 await cur.execute("""
-                    SELECT id, email, password
+                    SELECT id, name, email, password
                     FROM admin_credentials
                     WHERE email = %s
                 """, (email,))
                 row = await cur.fetchone()
                 
-                if not row or not AdminService._verify_password(password, row[2]):
+                if not row or not AdminService._verify_password(password, row[3]):
                     return None
                 
                 token = AdminService._generate_token(str(row[0]))
@@ -60,12 +60,13 @@ class AdminService:
                     'token': token,
                     'admin': {
                         'id': str(row[0]),
-                        'email': row[1]
+                        'name': row[1],
+                        'email': row[2]
                     }
                 }
     
     @staticmethod
-    async def create_admin(email: str, password: str) -> AdminData:
+    async def create_admin(name: str, email: str, password: str) -> AdminData:
         """Create new admin"""
         async with get_cursor() as conn:
             async with conn.cursor() as cur:
@@ -82,24 +83,25 @@ class AdminService:
                 hashed_password = AdminService._hash_password(password)
                 
                 await cur.execute("""
-                    INSERT INTO admin_credentials (email, password)
-                    VALUES (%s, %s)
-                    RETURNING id, email, created_at, updated_at
-                """, (email, hashed_password))
+                    INSERT INTO admin_credentials (name, email, password)
+                    VALUES (%s, %s, %s)
+                    RETURNING id, name, email, created_at, updated_at
+                """, (name, email, hashed_password))
                 row = await cur.fetchone()
                 
                 await conn.commit()
                 
                 return AdminData(
                     id=str(row[0]),
-                    email=row[1],
-                    created_at=row[2],
-                    updated_at=row[3]
+                    name=row[1],
+                    email=row[2],
+                    created_at=row[3],
+                    updated_at=row[4]
                 )
     
     @staticmethod
-    async def update_admin(admin_id: str, email: Optional[str] = None, password: Optional[str] = None) -> Optional[AdminData]:
-        """Update admin email and/or password"""
+    async def update_admin(admin_id: str, name: Optional[str] = None, email: Optional[str] = None, password: Optional[str] = None) -> Optional[AdminData]:
+        """Update admin name, email and/or password"""
         async with get_cursor() as conn:
             async with conn.cursor() as cur:
                 # Check if admin exists
@@ -114,6 +116,10 @@ class AdminService:
                 # Build update query dynamically
                 update_fields = []
                 params = []
+                
+                if name:
+                    update_fields.append("name = %s")
+                    params.append(name)
                 
                 if email:
                     # Check if new email already exists (for other admins)
@@ -134,15 +140,16 @@ class AdminService:
                 if not update_fields:
                     # No updates needed, just return current admin
                     await cur.execute("""
-                        SELECT id, email, created_at, updated_at
+                        SELECT id, name, email, created_at, updated_at
                         FROM admin_credentials WHERE id = %s
                     """, (admin_id,))
                     row = await cur.fetchone()
                     return AdminData(
                         id=str(row[0]),
-                        email=row[1],
-                        created_at=row[2],
-                        updated_at=row[3]
+                        name=row[1],
+                        email=row[2],
+                        created_at=row[3],
+                        updated_at=row[4]
                     )
                 
                 update_fields.append("updated_at = CURRENT_TIMESTAMP")
@@ -152,7 +159,7 @@ class AdminService:
                     UPDATE admin_credentials 
                     SET {', '.join(update_fields)}
                     WHERE id = %s
-                    RETURNING id, email, created_at, updated_at
+                    RETURNING id, name, email, created_at, updated_at
                 """
                 
                 await cur.execute(query, params)
@@ -162,9 +169,10 @@ class AdminService:
                 
                 return AdminData(
                     id=str(row[0]),
-                    email=row[1],
-                    created_at=row[2],
-                    updated_at=row[3]
+                    name=row[1],
+                    email=row[2],
+                    created_at=row[3],
+                    updated_at=row[4]
                 )
     
     @staticmethod
@@ -182,26 +190,46 @@ class AdminService:
     
     # READ OPERATIONS
     @staticmethod
-    async def get_all_admins() -> List[AdminData]:
-        """Retrieve all admin users"""
+    async def get_all_admins(page: int = 1, limit: int = 9) -> dict:
+        """Retrieve all admin users with pagination"""
         async with get_cursor() as conn:
             async with conn.cursor() as cur:
+                # Calculate offset
+                offset = (page - 1) * limit
+                
+                # Get total count
+                await cur.execute("SELECT COUNT(*) FROM admin_credentials")
+                total_count = (await cur.fetchone())[0]
+                
+                # Get paginated results
                 await cur.execute("""
-                    SELECT id, email, created_at, updated_at
+                    SELECT id, name, email, created_at, updated_at
                     FROM admin_credentials
                     ORDER BY created_at DESC
-                """)
+                    LIMIT %s OFFSET %s
+                """, (limit, offset))
                 rows = await cur.fetchall()
                 
-                return [
+                # Calculate total pages
+                total_pages = (total_count + limit - 1) // limit
+                
+                admins = [
                     AdminData(
                         id=str(row[0]),
-                        email=row[1],
-                        created_at=row[2],
-                        updated_at=row[3]
+                        name=row[1],
+                        email=row[2],
+                        created_at=row[3],
+                        updated_at=row[4]
                     )
                     for row in rows
                 ]
+                
+                return {
+                    'admins': admins,
+                    'total': total_count,
+                    'page': page,
+                    'pages': total_pages
+                }
     
     @staticmethod
     async def get_admin_by_id(admin_id: str) -> Optional[AdminData]:
@@ -209,7 +237,7 @@ class AdminService:
         async with get_cursor() as conn:
             async with conn.cursor() as cur:
                 await cur.execute("""
-                    SELECT id, email, created_at, updated_at
+                    SELECT id, name, email, created_at, updated_at
                     FROM admin_credentials
                     WHERE id = %s
                 """, (admin_id,))
@@ -220,9 +248,10 @@ class AdminService:
                     
                 return AdminData(
                     id=str(row[0]),
-                    email=row[1],
-                    created_at=row[2],
-                    updated_at=row[3]
+                    name=row[1],
+                    email=row[2],
+                    created_at=row[3],
+                    updated_at=row[4]
                 )
     
     @staticmethod
@@ -231,7 +260,7 @@ class AdminService:
         async with get_cursor() as conn:
             async with conn.cursor() as cur:
                 await cur.execute("""
-                    SELECT id, email, password, created_at, updated_at
+                    SELECT id, name, email, password, created_at, updated_at
                     FROM admin_credentials
                     WHERE email = %s
                 """, (email,))
@@ -242,8 +271,9 @@ class AdminService:
                     
                 return {
                     'id': str(row[0]),
-                    'email': row[1],
-                    'password': row[2],
-                    'created_at': row[3],
-                    'updated_at': row[4]
+                    'name': row[1],
+                    'email': row[2],
+                    'password': row[3],
+                    'created_at': row[4],
+                    'updated_at': row[5]
                 }
