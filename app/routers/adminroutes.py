@@ -204,8 +204,8 @@ async def update_admin(
     try:
         admin = await AdminService.update_admin(
             target_admin_id, 
-            request.email, 
-            request.name,
+            request.name, 
+            request.email,
             request.password
         )
         if not admin:

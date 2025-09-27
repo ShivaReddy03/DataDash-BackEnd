@@ -241,6 +241,7 @@ class ListProjectResponse(BaseModel):
 class ProjectOption(BaseModel):
     id: uuid.UUID
     title: str
+    property_type: Optional[PropertyType] = None
 
 class ProjectOptionsResponse(BaseModel):
     success: bool

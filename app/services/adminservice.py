@@ -288,10 +288,16 @@ class AdminService:
                 await cur.execute("SELECT COUNT(*) FROM admin_credentials")
                 total_users = (await cur.fetchone())[0]
                 
-                await cur.execute("SELECT COUNT(*) FROM projects")
+                await cur.execute("SELECT COUNT(*) FROM projects WHERE is_active = 'true'")
                 total_projects = (await cur.fetchone())[0]
                 
-                await cur.execute("SELECT COUNT(*) FROM investment_schemes")
+                await cur.execute("""
+                SELECT COUNT(*)
+                FROM investment_schemes s
+                JOIN projects p ON s.project_id = p.id
+                WHERE s.is_active = TRUE
+                  AND p.is_active = TRUE
+                """)
                 total_schemes = (await cur.fetchone())[0]
                 
                 return {

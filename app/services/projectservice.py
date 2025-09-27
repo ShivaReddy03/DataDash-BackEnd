@@ -490,11 +490,11 @@ class ProjectService:
         async with get_cursor() as conn:
             async with conn.cursor() as cur:
                 await cur.execute("""
-                    SELECT id, title
+                    SELECT id, title, property_type
                     FROM projects
                     WHERE is_active = true
                     ORDER BY title ASC
                 """)
                 rows = await cur.fetchall()
 
-                return [ProjectOption(id=row[0], title=row[1]) for row in rows]
+                return [ProjectOption(id=row[0], title=row[1], property_type=row[2]) for row in rows]
